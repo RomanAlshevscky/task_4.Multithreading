@@ -65,24 +65,6 @@ public class Matrix {
         return false;
     }
 
-    /*  public int[][] multiplyWithManyThreads(int[][] firstMatrix, int[][] secondMatrix) {
-          int[][] result = new int[0][];
-          if(validate(firstMatrix, secondMatrix)){
-              int length = firstMatrix.length;
-              result = new int[length][length];
-              for(int i = 0; i < length; i++){
-                  int sum = 0;
-                  int j = 0;
-                  for (; j < length; j++){
-                      int a = firstMatrix[i][j];
-                      int b = secondMatrix[j][i];
-                      sum = sum + a*b;
-                  }
-                  result[i][j-1] = sum;
-              }
-          }
-          return result;
-      }*/
     private class CalculateSumThread extends Thread {
 
         private final int[][] firstMatrix;
@@ -91,8 +73,6 @@ public class Matrix {
         private volatile boolean isActive = false;
         private int row;
         private int colomn;
-        // index in threadPull
-        private int index;
 
         /**
          * @param fMatrix First matrix

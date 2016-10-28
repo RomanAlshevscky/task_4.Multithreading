@@ -70,9 +70,20 @@ public class Matrix {
         private final int[][] firstMatrix;
         private final int[][] secondMatrix;
         private final int[][] resultMatrix;
-        private volatile boolean isActive = false;
         private int row;
         private int colomn;
+        private volatile boolean stop;
+        private Object synchronizedObject = new Object();
+        //True, после выставления значений для вычислений
+        private volatile boolean isReady = false;
+
+        public void setStop(boolean value) {
+            stop = value;
+        }
+
+        public boolean isStoped() {
+            return stop;
+        }
 
         /**
          * @param fMatrix First matrix
@@ -83,21 +94,33 @@ public class Matrix {
             firstMatrix = fMatrix;
             secondMatrix = sMatrix;
             resultMatrix = rMatrix;
+            stop = false;
         }
 
-        public void setRowAndColumn(int row, int col){
-            this.row = row;
-            this.colomn = col;
+        public void setRowAndColumn(int row, int col) {
+            synchronized (synchronizedObject) {
+                this.row = row;
+                this.colomn = col;
+                isReady = true;
+            }
         }
 
         public synchronized void run() {
+            //Пока не stop != true и вычисления не закончены
+            while(!stop || isReady) {
+                synchronized (synchronizedObject) {
+                    if (isReady) {
+                        calculateSum();
+                        isReady = false;
+                    }
+                }
+            }
         }
 
         /**
          * Paste sum into resultMatrix
          */
         private void calculateSum() {
-            isActive = true;
             int sum = 0;
             for (int k = 0; k < resultMatrix.length; k++) {
                 sum += firstMatrix[row][k] * secondMatrix[k][colomn];
@@ -105,7 +128,6 @@ public class Matrix {
             synchronized (lockObject) {
                 resultMatrix[row][colomn] = sum;
             }
-            isActive = false;
         }
     }
 
@@ -118,8 +140,9 @@ public class Matrix {
         }
         else {
             while (t == null){
+
                 for (CalculateSumThread item: threadPull) {
-                    if(!item.isActive){
+                    if(!item.isReady){
                         t = item;
                         break;
                     }
@@ -135,11 +158,11 @@ public class Matrix {
             for (int currentRow = 0; currentRow < length; currentRow++) {
                 CalculateSumThread thread = getFreeSumThread();
                 thread.setRowAndColumn(currentRow, currentColumn);
-                thread.calculateSum();
             }
         }
         try{
             for(CalculateSumThread t : threadPull){
+                t.setStop(true);
                 t.join();
             }
         }
